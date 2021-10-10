@@ -2,7 +2,6 @@ from constants import PLAYLISTS
 import client as spotify
 import pandas as pd
 import os
-path = os.path.abspath(os.getcwd())
 
 
 def parse_track_info(tracks: list[dict], decade: str) -> list[dict]:
@@ -45,6 +44,8 @@ def get_playlist_tracks(playlist_id: str) -> list[dict]:
 
 def main():
     df = pd.DataFrame()
+    csv_path = os.path.join(os.path.abspath(os.getcwd()), "data/spotify/csv")
+    os.makedirs(csv_path)
     for playlist in PLAYLISTS:
         print(f'Processing playlist {playlist["decade"]}')
         p_tracks = get_playlist_tracks(playlist["playlist_id"])
@@ -53,12 +54,16 @@ def main():
         p_tracks = parse_audio_features(p_tracks)
         p_df = pd.DataFrame(p_tracks)
         p_df.to_csv(
-            f'{path}/data/spotify/csv/{playlist["decade"]}.csv', index=False, index_label=False)
+            os.path.join(
+                csv_path, f'{playlist["decade"]}.csv'),
+            index=False, index_label=False)
         df = df.append(p_df)
         print(
             f'Decade: {playlist["decade"]}, Success retrieving {len(p_tracks)} tracks')
-        df.to_csv(f'{path}/data/spotify/csv/dataset.csv',
-                  index=False, index_label=False)
+        df.to_csv(
+            os.path.join(
+                csv_path, 'dataset.csv'),
+            index=False, index_label=False)
         print(
             f'Dataset: {playlist["decade"]} added to dataset csv')
 
