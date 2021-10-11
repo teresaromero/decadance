@@ -90,3 +90,47 @@ def playlist_tracks(playlist_id: str) -> list[dict]:
     result = [{x: track[x] for x in track if x in required_fields}
               for track in tracks]
     return result
+
+
+def search(year: str, required_items: int = 100) -> list[dict]:
+    token = __auth("search")
+    offset = 0
+    batch = 50
+    retrieved = 0
+    next = False
+
+    def param_request(year, batch, offset, token): return requests.get(f"{API_URL}/search?q=year:{year}+genre:pop&type=track&market=ES&limit={batch}&offset={offset}",
+                                                                       headers={"Authorization": f"Bearer {token}"})
+    result = list()
+    while retrieved < required_items and not next:
+        res = param_request(year, batch, offset, token)
+        data = res.json()["tracks"]
+        status_code = res.status_code
+
+        if status_code != 200:
+            print(f"ERROR: spotify.search: status {status_code} - {data}")
+            return
+
+        next = data["next"] == "null"
+        items = data["items"]
+
+        required_fields = [
+            "id", "uri", "name", "artists", "album.name", "album.release_date", "album.release_date_precision", "preview_url"
+        ]
+
+        for track in items:
+            res = dict()
+            for f in required_fields:
+                field_split = f.split(".")
+                if len(field_split) == 2:
+                    res[f] = track[field_split[0]][field_split[1]]
+                elif f == "artists":
+                    res[f] = [a["name"] for a in track[f]]
+                else:
+                    res[f] = track[field_split[0]]
+            result.append(res)
+
+        offset += batch
+        retrieved += batch
+
+    return result

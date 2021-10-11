@@ -68,5 +68,34 @@ def main():
             f'Dataset: {playlist["decade"]} added to dataset csv')
 
 
+def search_main():
+    df = pd.DataFrame()
+    csv_path = ""
+    try:
+        csv_path = os.path.join(os.path.abspath(
+            os.getcwd()), "data/spotify/csv/by_year")
+        os.makedirs(csv_path)
+    except Exception as err:
+        if isinstance(err, FileExistsError):
+            print("path already exists")
+
+    years = range(1900, 2022)
+    for year in years:
+        print("Year", year)
+        tracks = spotify.search(year)
+        if len(tracks) != 0:
+            p_df = pd.DataFrame(tracks)
+            p_df.to_csv(
+                os.path.join(
+                    csv_path, f'{year}_tracks.csv'),
+                index=False, index_label=False)
+            df = df.append(p_df)
+            df.to_csv(
+                os.path.join(
+                    csv_path, 'dataset.csv'),
+                index=False, index_label=False)
+    return
+
+
 if __name__ == "__main__":
-    main()
+    search_main()
