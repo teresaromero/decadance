@@ -9,9 +9,9 @@ CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 AUTH_URL = os.getenv("SPOTIFY_AUTH_URL")
 API_URL = os.getenv("SPOTIFY_API_URL")
 
+token = ""
 
-def __auth(origin: str) -> str:
-    print(f"Retrieve token for {origin}")
+def _get_token() -> str:
     res = requests.post(AUTH_URL, {
         'grant_type': 'client_credentials',
         'client_id': CLIENT_ID,
@@ -19,11 +19,19 @@ def __auth(origin: str) -> str:
     })
     data = res.json()
     status_code = res.status_code
+    if status_code == 200:
+        return data['access_token']
+    else:
+        return ""
 
-    if status_code != 200:
-        raise Exception(f"Error Access Token: {data}")
 
-    return data['access_token']
+def __auth(origin: str) -> str:
+    global token
+    while token == "":
+        print(f"Setting up the token {origin}")
+        t = _get_token()
+        token = t
+    return token
 
 
 def audio_analysis(track_id: str) -> dict:
