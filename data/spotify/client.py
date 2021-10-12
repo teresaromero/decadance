@@ -9,9 +9,10 @@ CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 AUTH_URL = os.getenv("SPOTIFY_AUTH_URL")
 API_URL = os.getenv("SPOTIFY_API_URL")
 
+token = ""
 
-def __auth(origin: str) -> str:
-    print(f"Retrieve token for {origin}")
+
+def _get_token() -> str:
     res = requests.post(AUTH_URL, {
         'grant_type': 'client_credentials',
         'client_id': CLIENT_ID,
@@ -19,11 +20,18 @@ def __auth(origin: str) -> str:
     })
     data = res.json()
     status_code = res.status_code
+    if status_code == 200:
+        return data['access_token']
+    return ""
 
-    if status_code != 200:
-        raise Exception(f"Error Access Token: {data}")
 
-    return data['access_token']
+def __auth(origin: str) -> str:
+    global token
+    while token == "":
+        print(f"Setting up the token {origin}")
+        t = _get_token()
+        token = t
+    return token
 
 
 def audio_analysis(track_id: str) -> dict:
@@ -89,4 +97,49 @@ def playlist_tracks(playlist_id: str) -> list[dict]:
     tracks = [i["track"] for i in data["items"]]
     result = [{x: track[x] for x in track if x in required_fields}
               for track in tracks]
+    return result
+
+
+def search(year: str, required_items: int = 100) -> list[dict]:
+    token = __auth("search")
+    offset = 0
+    batch = 50
+    retrieved = 0
+    next_batch = False
+
+    def param_request(year, batch, offset, token):
+        return requests.get(f"{API_URL}/search?q=year:{year}+genre:pop&type=track&market=ES&limit={batch}&offset={offset}",
+                            headers={"Authorization": f"Bearer {token}"})
+    result = list()
+    while retrieved < required_items and not next_batch:
+        res = param_request(year, batch, offset, token)
+        data = res.json()["tracks"]
+        status_code = res.status_code
+
+        if status_code != 200:
+            print(f"ERROR: spotify.search: status {status_code} - {data}")
+            return
+
+        next_batch = data["next"] == "null"
+        items = data["items"]
+
+        required_fields = [
+            "id", "uri", "name", "artists", "album.name", "album.release_date", "album.release_date_precision", "preview_url"
+        ]
+
+        for track in items:
+            res = dict()
+            for f in required_fields:
+                field_split = f.split(".")
+                if len(field_split) == 2:
+                    res[f] = track[field_split[0]][field_split[1]]
+                elif f == "artists":
+                    res[f] = [a["name"] for a in track[f]]
+                else:
+                    res[f] = track[field_split[0]]
+            result.append(res)
+
+        offset += batch
+        retrieved += batch
+
     return result
