@@ -11,6 +11,7 @@ API_URL = os.getenv("SPOTIFY_API_URL")
 
 token = ""
 
+
 def _get_token() -> str:
     res = requests.post(AUTH_URL, {
         'grant_type': 'client_credentials',
@@ -21,8 +22,7 @@ def _get_token() -> str:
     status_code = res.status_code
     if status_code == 200:
         return data['access_token']
-    else:
-        return ""
+    return ""
 
 
 def __auth(origin: str) -> str:
@@ -105,12 +105,13 @@ def search(year: str, required_items: int = 100) -> list[dict]:
     offset = 0
     batch = 50
     retrieved = 0
-    next = False
+    next_batch = False
 
-    def param_request(year, batch, offset, token): return requests.get(f"{API_URL}/search?q=year:{year}+genre:pop&type=track&market=ES&limit={batch}&offset={offset}",
-                                                                       headers={"Authorization": f"Bearer {token}"})
+    def param_request(year, batch, offset, token):
+        return requests.get(f"{API_URL}/search?q=year:{year}+genre:pop&type=track&market=ES&limit={batch}&offset={offset}",
+                            headers={"Authorization": f"Bearer {token}"})
     result = list()
-    while retrieved < required_items and not next:
+    while retrieved < required_items and not next_batch:
         res = param_request(year, batch, offset, token)
         data = res.json()["tracks"]
         status_code = res.status_code
@@ -119,7 +120,7 @@ def search(year: str, required_items: int = 100) -> list[dict]:
             print(f"ERROR: spotify.search: status {status_code} - {data}")
             return
 
-        next = data["next"] == "null"
+        next_batch = data["next"] == "null"
         items = data["items"]
 
         required_fields = [
