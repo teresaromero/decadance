@@ -70,14 +70,9 @@ def main():
 
 def search_main():
     df = pd.DataFrame()
-    csv_path = ""
-    try:
-        csv_path = os.path.join(os.path.abspath(
-            os.getcwd()), "data/spotify/csv/by_year")
-        os.makedirs(csv_path)
-    except Exception as err:
-        if isinstance(err, FileExistsError):
-            print("path already exists")
+    csv_path = os.path.join(os.path.abspath(
+        os.getcwd()), "data/spotify/csv/by_year")
+    os.makedirs(name=csv_path, exist_ok=True)
 
     years = range(1900, 2022)
     for year in years:
