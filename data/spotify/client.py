@@ -100,27 +100,28 @@ def playlist_tracks(playlist_id: str) -> list[dict]:
     return result
 
 
-def search(year: str, required_items: int = 100) -> list[dict]:
+def search_with_preview(year: str, required_items: int = 100) -> list[dict]:
+    """search_with_preview returns at least the required items for the given year"""
     token = __auth("search")
     offset = 0
     batch = 50
     retrieved = 0
-    next_batch = False
+    next_batch = True
 
     def param_request(year, batch, offset, token):
         return requests.get(f"{API_URL}/search?q=year:{year}+genre:pop&type=track&market=ES&limit={batch}&offset={offset}",
                             headers={"Authorization": f"Bearer {token}"})
     result = list()
-    while retrieved < required_items and not next_batch:
+    while retrieved < required_items and next_batch:
         res = param_request(year, batch, offset, token)
-        data = res.json()["tracks"]
         status_code = res.status_code
 
         if status_code != 200:
             print(f"ERROR: spotify.search: status {status_code} - {data}")
-            return
+            break
 
-        next_batch = data["next"] == "null"
+        data = res.json()["tracks"]
+        next_batch = data["next"] != None
         items = data["items"]
 
         required_fields = [
@@ -128,6 +129,8 @@ def search(year: str, required_items: int = 100) -> list[dict]:
         ]
 
         for track in items:
+            if track["preview_url"] == None:
+                continue
             res = dict()
             for f in required_fields:
                 field_split = f.split(".")
@@ -140,6 +143,6 @@ def search(year: str, required_items: int = 100) -> list[dict]:
             result.append(res)
 
         offset += batch
-        retrieved += batch
+        retrieved = len(result)
 
     return result
