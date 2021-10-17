@@ -115,12 +115,12 @@ def search_with_preview(year: str, required_items: int = 100) -> list[dict]:
     while retrieved < required_items and next_batch:
         res = param_request(year, batch, offset, token)
         status_code = res.status_code
-
+        data = res.json()
         if status_code != 200:
             print(f"ERROR: spotify.search: status {status_code} - {data}")
             break
 
-        data = res.json()["tracks"]
+        data = data["tracks"]
         next_batch = data["next"] != None
         items = data["items"]
 
